@@ -13,16 +13,58 @@
         </ion-toolbar>
       </ion-header>
 
-      <div id="container">
-        <strong>Ready to create an app?</strong>
-        <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
-      </div>
+      
     </ion-content>
   </ion-page>
 </template>
 
-<script setup lang="ts">
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/vue';
+<script  >
+import axios from "axios"
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, modalController } from '@ionic/vue';
+import DetailsScanned from "../components/DetailsScanned";
+import { BarcodeScanner } from '@capacitor-community/barcode-scanner';
+
+export default {
+  mounted(){
+    this.startScan()
+  },
+  components:{
+    IonContent, IonHeader, IonPage, IonTitle, IonToolbar
+  },
+  methods:{
+    async showDetails(insription){
+      const modal = await modalController.create({
+        component:DetailsScanned,
+        componentProps:{insription:insription}
+      })
+      modal.present()
+
+      const {data, role} = await modal.onWillDismiss()
+      console.log(data)
+      console.log(role)
+    },
+    async startScan() {
+      document.querySelector('body').classList.add('scanner-active');
+      await BarcodeScanner.checkPermission({ force: true });
+
+      // make background of WebView transparent
+      // note: if you are using ionic this might not be enough, check below
+      BarcodeScanner.hideBackground();
+
+      const result = await BarcodeScanner.startScan(); // start scanning and wait for a result
+
+      // if the result has content
+      if (result.hasContent) {
+        axios.get(result.content)
+        .then((res)=>{
+          console.log(res)
+          this.showDetails(res.data)
+        }).catch((err)=>{console.log(err)})
+      }
+      document.querySelector('body').classList.remove('scanner-active');
+    }
+  }
+}
 </script>
 
 <style scoped>
